@@ -1,5 +1,7 @@
+mod model;
+mod storage;
 mod ui;
 
 fn main() {
-    ui::tui::run_terminal();
+    let _ = ui::tui::run_terminal();
 }
