@@ -13,3 +13,5 @@ tracing = "0.1.37"
 lazy_static = "1.4.0"
 tracing-subscriber = "0.3.16"
 unicode-width = "0.1.10"
+sqlx = { version = "0.6.3", features = ["runtime-tokio-native-tls", "sqlite"] }
+tokio = { version = "1.28.0", features = ["full"] }
