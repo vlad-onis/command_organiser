@@ -38,7 +38,11 @@ impl CommandStorageManager {
 
         // Create the command tables
         let _query_result = sqlx::query(
-            "CREATE TABLE IF NOT EXISTS commands (command VARCHAR(250) NOT NULL UNIQUE, executable VARCHAR(50) NOT NULL UNIQUE);",
+            "CREATE TABLE IF NOT EXISTS commands \
+            (command VARCHAR(250) NOT NULL UNIQUE, \
+            executable VARCHAR(50) NOT NULL UNIQUE, \
+            alias VARCHAR(20) NOT NULL UNIQUE, \
+            description VARCHAR(300) NULL);",
         )
         .execute(&db)
         .await?;
@@ -71,11 +75,15 @@ impl CommandStorageManager {
     }
 
     pub async fn insert_command(&self, command: Command) -> Result<(), CommandStorageError> {
-        let query_result = sqlx::query("INSERT INTO commands(executable, command) VALUES(?, ?);")
-            .bind(command.executable)
-            .bind(command.command)
-            .execute(&self.connection_pool)
-            .await?;
+        let query_result = sqlx::query(
+            "INSERT INTO commands(executable, command, alias, description) VALUES(?, ?, ?, ?);",
+        )
+        .bind(command.executable)
+        .bind(command.command)
+        .bind(command.alias)
+        .bind(command.description)
+        .execute(&self.connection_pool)
+        .await?;
 
         Ok(())
     }
@@ -92,10 +100,13 @@ impl CommandStorageManager {
 
 #[cfg(test)]
 mod tests {
+    use serial_test::serial;
+
     use super::CommandStorageManager;
     use crate::model::command::Command;
 
     #[tokio::test]
+    #[serial]
     async fn test_manager_flow() {
         let manager = CommandStorageManager::new("sqlite://sqlite.db")
             .await
@@ -104,6 +115,8 @@ mod tests {
         let command = Command {
             executable: "git".to_string(),
             command: "git pull".to_string(),
+            alias: "git_pull".to_string(),
+            description: None,
         };
 
         manager.insert_command(command.clone()).await.unwrap();
