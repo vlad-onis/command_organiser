@@ -11,6 +11,9 @@ pub enum CommandServiceError {
     #[error("Failed to insert a command : {0}")]
     StorageManagerInsert(CommandStorageError),
 
+    #[error("Failed to retrieve all commands : {0}")]
+    StorageManagerGetAll(CommandStorageError),
+
     #[error("Unable to parse the executable out of the given command")]
     NoExecutable,
 }
@@ -54,6 +57,13 @@ impl CommandService {
 
         Ok(command)
     }
+
+    pub async fn get_all_commands(&self) -> Result<Vec<Command>, CommandServiceError> {
+        self.storage_manager
+            .get_all_commands()
+            .await
+            .map_err(|e| CommandServiceError::StorageManagerGetAll(e))
+    }
 }
 
 #[cfg(test)]
@@ -85,6 +95,27 @@ mod tests {
         assert_eq!(inserted.executable, "test".to_string());
         assert_eq!(inserted.command, "test command arguments".to_string());
 
+        std::fs::remove_file("test.sqlite").unwrap();
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_get_all_commands() {
+        let service = CommandService::new("test.sqlite").await.unwrap();
+
+        let _ = service
+            .insert_command("test command arguments", "my_test", None)
+            .await
+            .unwrap();
+
+        let _ = service
+            .insert_command("test2 command arguments", "my_test2", None)
+            .await
+            .unwrap();
+
+        let res = service.get_all_commands().await.unwrap();
+
+        assert_eq!(res.len(), 2);
         std::fs::remove_file("test.sqlite").unwrap();
     }
 }
