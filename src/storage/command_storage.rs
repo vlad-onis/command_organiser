@@ -50,19 +50,15 @@ impl CommandStorageManager {
         Ok(db)
     }
 
-    pub async fn get_commands_by_executable(
-        &self,
-        executable: String,
-    ) -> Result<Vec<Command>, CommandStorageError> {
+    pub async fn get_all_commands(&self) -> Result<Vec<Command>, CommandStorageError> {
         let commands = sqlx::query_as::<_, Command>("SELECT * FROM commands")
-            .bind(executable)
             .fetch_all(&self.connection_pool)
             .await?;
 
         Ok(commands.into_iter().collect())
     }
 
-    pub async fn get_all_commands(
+    pub async fn get_commands_by_executable(
         &self,
         executable: String,
     ) -> Result<Vec<Command>, CommandStorageError> {
