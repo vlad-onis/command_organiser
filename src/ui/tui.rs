@@ -14,27 +14,28 @@ use ratatui::{
 use std::{error::Error, io};
 
 struct App<'a> {
-    pub titles: Vec<&'a str>,
+    pub executables: Vec<&'a str>,
     pub index: usize,
 }
 
 impl<'a> App<'a> {
     fn new() -> App<'a> {
+        // get titles from the db
         App {
-            titles: vec!["ssh", "git", "Tab2", "Tab3"],
+            executables: vec!["ssh", "git"],
             index: 0,
         }
     }
 
     pub fn next(&mut self) {
-        self.index = (self.index + 1) % self.titles.len();
+        self.index = (self.index + 1) % self.executables.len();
     }
 
     pub fn previous(&mut self) {
         if self.index > 0 {
             self.index -= 1;
         } else {
-            self.index = self.titles.len() - 1;
+            self.index = self.executables.len() - 1;
         }
     }
 }
@@ -90,21 +91,16 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
         .constraints([Constraint::Length(3), Constraint::Min(0)].as_ref())
         .split(size);
 
-    let block = Block::default().style(Style::default().bg(Color::White).fg(Color::Black));
+    let block = Block::default().style(Style::default().bg(Color::Black).fg(Color::LightYellow));
     f.render_widget(block, size);
     let titles = app
-        .titles
+        .executables
         .iter()
-        .map(|t| {
-            let (first, rest) = t.split_at(1);
-            Spans::from(vec![
-                Span::styled(first, Style::default().fg(Color::Yellow)),
-                Span::styled(rest, Style::default().fg(Color::Green)),
-            ])
-        })
+        .map(|t| Spans::from(Span::styled(*t, Style::default().fg(Color::Yellow))))
         .collect();
+
     let tabs = Tabs::new(titles)
-        .block(Block::default().borders(Borders::ALL).title("Tabs"))
+        .block(Block::default().borders(Borders::ALL).title("Executables"))
         .select(app.index)
         .style(Style::default().fg(Color::Cyan))
         .highlight_style(
@@ -113,6 +109,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
                 .bg(Color::Black),
         );
     f.render_widget(tabs, chunks[0]);
+
     let inner = match app.index {
         0 => Block::default().title("Inner 0").borders(Borders::ALL),
         1 => Block::default().title("Inner 1").borders(Borders::ALL),
