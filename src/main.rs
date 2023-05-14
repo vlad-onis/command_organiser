@@ -1,4 +1,5 @@
 mod model;
+mod service;
 mod storage;
 mod ui;
 
