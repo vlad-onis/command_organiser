@@ -12,19 +12,38 @@ use ratatui::{
     Frame, Terminal,
 };
 use std::{error::Error, io};
+use thiserror::Error;
 
-struct App<'a> {
-    pub executables: Vec<&'a str>,
+use crate::service::command_service::{CommandService, CommandServiceError};
+
+struct App {
+    pub executables: Vec<String>,
     pub index: usize,
+    pub command_service: CommandService,
 }
 
-impl<'a> App<'a> {
-    fn new() -> App<'a> {
+#[derive(Debug, Error)]
+enum ApplicationError {
+    #[error("Command Service failed: {0}")]
+    CommandService(#[from] CommandServiceError),
+}
+
+impl App {
+    async fn new() -> Result<App, ApplicationError> {
+        let command_service = CommandService::new("commands.db").await?;
+        let executables: Vec<String> = command_service
+            .get_all_commands()
+            .await?
+            .into_iter()
+            .map(|command| command.executable)
+            .collect();
+
         // get titles from the db
-        App {
-            executables: vec!["ssh", "git"],
+        Ok(App {
+            executables,
             index: 0,
-        }
+            command_service,
+        })
     }
 
     pub fn next(&mut self) {
@@ -40,7 +59,7 @@ impl<'a> App<'a> {
     }
 }
 
-pub fn run_terminal() -> Result<(), Box<dyn Error>> {
+pub async fn run_terminal() -> Result<(), Box<dyn Error>> {
     // setup terminal
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -49,7 +68,7 @@ pub fn run_terminal() -> Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
 
     // create app and run it
-    let app = App::new();
+    let app = App::new().await?;
     let res = run_app(&mut terminal, app);
 
     // restore terminal
@@ -96,13 +115,13 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
     let titles = app
         .executables
         .iter()
-        .map(|t| Spans::from(Span::styled(*t, Style::default().fg(Color::Yellow))))
+        .map(|t| Spans::from(Span::styled(t, Style::default().fg(Color::Cyan))))
         .collect();
 
     let tabs = Tabs::new(titles)
         .block(Block::default().borders(Borders::ALL).title("Executables"))
         .select(app.index)
-        .style(Style::default().fg(Color::Cyan))
+        .style(Style::default().fg(Color::Rgb(255, 213, 128)))
         .highlight_style(
             Style::default()
                 .add_modifier(Modifier::BOLD)
