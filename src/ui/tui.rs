@@ -5,7 +5,7 @@ use crossterm::{
 };
 use ratatui::{
     backend::{Backend, CrosstermBackend},
-    layout::{Constraint, Direction, Layout},
+    layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Span, Spans},
     widgets::{Block, Borders, Tabs},
@@ -112,6 +112,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
 
     let block = Block::default().style(Style::default().bg(Color::Black).fg(Color::LightYellow));
     f.render_widget(block, size);
+
     let titles = app
         .executables
         .iter()
@@ -129,12 +130,31 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
         );
     f.render_widget(tabs, chunks[0]);
 
-    let inner = match app.index {
-        0 => Block::default().title("Inner 0").borders(Borders::ALL),
-        1 => Block::default().title("Inner 1").borders(Borders::ALL),
-        2 => Block::default().title("Inner 2").borders(Borders::ALL),
-        3 => Block::default().title("Inner 3").borders(Borders::ALL),
+    match app.index {
+        0 => draw_commands_pane(f, app, chunks[1]),
+        // 1 => Block::default().title("Inner 1").borders(Borders::ALL),
+        // 2 => Block::default().title("Inner 2").borders(Borders::ALL),
+        // 3 => Block::default().title("Inner 3").borders(Borders::ALL),
         _ => unreachable!(),
     };
-    f.render_widget(inner, chunks[1]);
+    // f.render_widget(inner, chunks[1]);
+}
+
+fn draw_commands_pane<B: Backend>(f: &mut Frame<B>, app: &App, area: Rect) {
+    let chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints(vec![Constraint::Percentage(25), Constraint::Percentage(75)].as_ref())
+        .split(area);
+    draw_alias_pane(f, app, chunks[0]);
+    draw_description_pane(f, app, chunks[1]);
+}
+
+fn draw_alias_pane<B: Backend>(f: &mut Frame<B>, app: &App, area: Rect) {
+    let aliases = Block::default().title("Inner 1").borders(Borders::ALL);
+    f.render_widget(aliases, area);
+}
+
+fn draw_description_pane<B: Backend>(f: &mut Frame<B>, app: &App, area: Rect) {
+    let descriptions = Block::default().title("Inner 2").borders(Borders::ALL);
+    f.render_widget(descriptions, area);
 }
