@@ -9,10 +9,16 @@ pub enum CommandServiceError {
     StorageManagerConstruction(CommandStorageError),
 
     #[error("Failed to insert a command : {0}")]
-    StorageManagerInsert(CommandStorageError),
+    StorageManagerInsertCommand(CommandStorageError),
 
     #[error("Failed to retrieve all commands : {0}")]
     StorageManagerGetAll(CommandStorageError),
+
+    #[error("Failed to retrieve single command : {0}")]
+    StorageManagerGetCommand(CommandStorageError),
+
+    #[error("Failed to delete a command : {0}")]
+    StorageManagerDeleteCommand(CommandStorageError),
 
     #[error("Unable to parse the executable out of the given command")]
     NoExecutable,
@@ -53,7 +59,7 @@ impl CommandService {
         self.storage_manager
             .insert_command(command.clone())
             .await
-            .map_err(|e| CommandServiceError::StorageManagerInsert(e))?;
+            .map_err(|e| CommandServiceError::StorageManagerInsertCommand(e))?;
 
         Ok(command)
     }
@@ -64,12 +70,66 @@ impl CommandService {
             .await
             .map_err(|e| CommandServiceError::StorageManagerGetAll(e))
     }
+
+    pub async fn get_command(
+        &self,
+        command: &str,
+        alias: &str,
+    ) -> Result<Command, CommandServiceError> {
+        let executable = command
+            .split(' ')
+            .collect::<Vec<&str>>()
+            .first()
+            .ok_or(CommandServiceError::NoExecutable)?
+            .to_owned();
+
+        let command = Command::new(
+            executable.to_string(),
+            command.to_string(),
+            alias.to_string(),
+            None,
+        );
+
+        self.storage_manager
+            .get_command(command)
+            .await
+            .map_err(|e| CommandServiceError::StorageManagerGetCommand(e))
+    }
+
+    pub async fn delete_command(
+        &self,
+        command: &str,
+        alias: &str,
+        description: Option<String>,
+    ) -> Result<Command, CommandServiceError> {
+        let executable = command
+            .split(' ')
+            .collect::<Vec<&str>>()
+            .first()
+            .ok_or(CommandServiceError::NoExecutable)?
+            .to_owned();
+
+        let command = Command::new(
+            executable.to_string(),
+            command.to_string(),
+            alias.to_string(),
+            description,
+        );
+        self.storage_manager
+            .delete_command(command.clone())
+            .await
+            .map_err(|e| CommandServiceError::StorageManagerDeleteCommand(e))?;
+
+        Ok(command)
+    }
 }
 
 #[cfg(test)]
 mod tests {
 
     use serial_test::serial;
+
+    use crate::model::command::Command;
 
     use super::CommandService;
 
@@ -116,6 +176,44 @@ mod tests {
         let res = service.get_all_commands().await.unwrap();
 
         assert_eq!(res.len(), 2);
+        std::fs::remove_file("test.sqlite").unwrap();
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_get_command() {
+        let service = CommandService::new("test.sqlite").await.unwrap();
+
+        let command = service
+            .insert_command("test command arguments", "my_test", None)
+            .await
+            .unwrap();
+
+        let res = service
+            .get_command(&command.command, &command.alias)
+            .await
+            .unwrap();
+
+        assert_eq!(res.alias, "my_test".to_string());
+        std::fs::remove_file("test.sqlite").unwrap();
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_delete_command() {
+        let service = CommandService::new("test.sqlite").await.unwrap();
+
+        let command = service
+            .insert_command("test command arguments", "my_test", None)
+            .await
+            .unwrap();
+
+        let res = service
+            .delete_command(&command.command, &command.alias, command.description)
+            .await
+            .unwrap();
+
+        assert_eq!(res.alias, "my_test".to_string());
         std::fs::remove_file("test.sqlite").unwrap();
     }
 }

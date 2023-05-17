@@ -70,6 +70,15 @@ impl CommandStorageManager {
         Ok(commands.into_iter().collect())
     }
 
+    pub async fn get_command(&self, command: Command) -> Result<Command, CommandStorageError> {
+        let command = sqlx::query_as::<_, Command>("SELECT * FROM commands where command=?")
+            .bind(command.command)
+            .fetch_one(&self.connection_pool)
+            .await?;
+
+        Ok(command)
+    }
+
     pub async fn insert_command(&self, command: Command) -> Result<(), CommandStorageError> {
         let query_result = sqlx::query(
             "INSERT INTO commands(executable, command, alias, description) VALUES(?, ?, ?, ?);",
@@ -119,11 +128,28 @@ mod tests {
 
         let commands = manager
             .get_commands_by_executable(command.executable.clone())
-            .await;
+            .await
+            .unwrap();
 
         println!("{:?}", commands);
 
+        assert_eq!(commands.len(), 1);
+
         manager.delete_command(command).await.unwrap();
+
+        let command = Command {
+            executable: "ssh".to_string(),
+            command: "ssh --version".to_string(),
+            alias: "ssh_version".to_string(),
+            description: None,
+        };
+
+        manager.insert_command(command.clone()).await.unwrap();
+
+        let command = manager.get_command(command).await.unwrap();
+        println!("Single command: {command:?}");
+
+        assert_eq!(command.executable, "ssh".to_string());
 
         let _ = std::fs::remove_file("sqlite.db");
         let _ = std::fs::remove_file("sqlite.db-shm");
