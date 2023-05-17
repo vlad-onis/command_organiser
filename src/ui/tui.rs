@@ -50,10 +50,16 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
         if let Event::Key(key) = event::read()? {
             match key.code {
                 KeyCode::Char('q') => return Ok(()),
-                KeyCode::Right => app.next(),
-                KeyCode::Left => app.previous(),
-                KeyCode::Down => app.commands.next(),
-                KeyCode::Up => app.commands.previous(),
+                KeyCode::Right => app.tabs.next(),
+                KeyCode::Left => app.tabs.previous(),
+                KeyCode::Down => {
+                    let selected_executable_tab = app.tabs.titles.get(app.tabs.index).unwrap(); // This should not fail
+                    app.commands.next(selected_executable_tab)
+                }
+                KeyCode::Up => {
+                    let selected_executable_tab = app.tabs.titles.get(app.tabs.index).unwrap(); // This should not fail
+                    app.commands.previous(selected_executable_tab);
+                }
                 _ => {}
             }
         }
@@ -72,20 +78,15 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     f.render_widget(block, size);
 
     let titles = app
-        .commands
-        .items
+        .tabs
+        .titles
         .iter()
-        .map(|command| {
-            Spans::from(Span::styled(
-                command.executable.clone(),
-                Style::default().fg(Color::Cyan),
-            ))
-        })
+        .map(|executable| Spans::from(Span::styled(executable, Style::default().fg(Color::Cyan))))
         .collect();
 
     let tabs = Tabs::new(titles)
         .block(Block::default().borders(Borders::ALL).title("Executables"))
-        .select(app.index)
+        .select(app.tabs.index)
         .style(Style::default().fg(Color::Rgb(255, 213, 128)))
         .highlight_style(
             Style::default()
@@ -109,14 +110,12 @@ fn draw_commands_pane<B: Backend>(f: &mut Frame<B>, app: &mut App, area: Rect) {
 }
 
 fn draw_alias_pane<B: Backend>(f: &mut Frame<B>, app: &mut App, area: Rect) {
-    let current_command_tab = app.commands.items.get(app.index).unwrap(); // This should not fail
-    let commands = app.get_by_executable(&current_command_tab.executable);
+    let exes = app.executables();
+    let current_command_tab = exes.get(app.tabs.index).unwrap(); // This should not fail
+    let commands = app.get_by_executable(current_command_tab);
 
-    let aliases: Vec<ListItem> = app
-        .commands
-        .items
-        .iter()
-        .filter(|command| command.executable == current_command_tab.executable)
+    let aliases: Vec<ListItem> = commands
+        .into_iter()
         .map(|command| ListItem::new(vec![Spans::from(Span::raw(command.clone().alias))]))
         .collect();
 

@@ -5,23 +5,46 @@ use thiserror::Error;
 use crate::model::command::Command;
 use crate::service::command_service::{CommandService, CommandServiceError};
 
+pub struct TabState {
+    pub titles: Vec<String>,
+    pub index: usize,
+}
+
+impl TabState {
+    pub fn new(titles: Vec<String>) -> TabState {
+        TabState { titles, index: 0 }
+    }
+    pub fn next(&mut self) {
+        self.index = (self.index + 1) % self.titles.len();
+    }
+
+    pub fn previous(&mut self) {
+        if self.index > 0 {
+            self.index -= 1;
+        } else {
+            self.index = self.titles.len() - 1;
+        }
+    }
+}
+
 pub struct StatefulList<T> {
     pub state: ListState,
-    pub items: Vec<T>,
+    pub items: HashMap<String, Vec<T>>,
 }
 
 impl<T> StatefulList<T> {
-    pub fn with_items(items: Vec<T>) -> StatefulList<T> {
+    pub fn with_items(items: HashMap<String, Vec<T>>) -> StatefulList<T> {
         StatefulList {
             state: ListState::default(),
             items,
         }
     }
 
-    pub fn next(&mut self) {
+    pub fn next(&mut self, selected_executable_tab: &str) {
         let i = match self.state.selected() {
             Some(i) => {
-                if i >= self.items.len() - 1 {
+                let items = &self.items[selected_executable_tab];
+                if i >= items.len() - 1 {
                     0
                 } else {
                     i + 1
@@ -32,11 +55,12 @@ impl<T> StatefulList<T> {
         self.state.select(Some(i));
     }
 
-    pub fn previous(&mut self) {
+    pub fn previous(&mut self, selected_executable_tab: &str) {
         let i = match self.state.selected() {
             Some(i) => {
+                let items = &self.items[selected_executable_tab];
                 if i == 0 {
-                    self.items.len() - 1
+                    items.len() - 1
                 } else {
                     i - 1
                 }
@@ -48,8 +72,8 @@ impl<T> StatefulList<T> {
 }
 
 pub struct App {
-    pub index: usize,
     pub commands: StatefulList<Command>,
+    pub tabs: TabState,
 }
 
 #[derive(Debug, Error)]
@@ -61,33 +85,30 @@ pub enum ApplicationError {
 impl App {
     pub async fn new() -> Result<App, ApplicationError> {
         let command_service = CommandService::new("commands.db").await?;
-        let commands = command_service.get_all_commands().await?;
+        let db_commands = command_service.get_all_commands().await?;
+
+        let mut commands: HashMap<String, Vec<Command>> = HashMap::new();
+        db_commands.into_iter().for_each(|command| {
+            let entry = commands
+                .entry(command.clone().executable)
+                .or_insert(Vec::new());
+            entry.push(command)
+        });
+
+        let tabs = TabState::new(commands.keys().cloned().collect());
 
         // get titles from the db
         Ok(App {
-            index: 0,
             commands: StatefulList::with_items(commands),
+            tabs,
         })
     }
 
-    pub fn next(&mut self) {
-        self.index = (self.index + 1) % self.commands.items.len();
-    }
-
-    pub fn previous(&mut self) {
-        if self.index > 0 {
-            self.index -= 1;
-        } else {
-            self.index = self.commands.items.len() - 1;
-        }
+    pub fn executables(&self) -> Vec<String> {
+        self.commands.items.keys().cloned().collect()
     }
 
     pub fn get_by_executable(&self, executable: &str) -> Vec<Command> {
-        self.commands
-            .items
-            .iter()
-            .filter(|command| command.executable == executable)
-            .cloned()
-            .collect()
+        self.commands.items[executable].clone()
     }
 }
