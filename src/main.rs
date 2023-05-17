@@ -23,25 +23,25 @@ pub mod tests {
             executable: "git".to_string(),
             command: "git pull".to_string(),
             alias: "git_pull".to_string(),
-            description: None,
+            description: Some("Just a git pull".to_string()),
         };
 
         let command2 = Command {
             executable: "ssh".to_string(),
             command: "ssh --version".to_string(),
             alias: "git_version".to_string(),
-            description: None,
+            description: Some("Just a ssh version".to_string()),
         };
 
         let command3 = Command {
             executable: "ls".to_string(),
             command: "ls .".to_string(),
             alias: "ls_current".to_string(),
-            description: None,
+            description: Some("Just a ls".to_string()),
         };
 
-        //manager.insert_command(command1.clone()).await.unwrap();
-        //manager.insert_command(command2.clone()).await.unwrap();
+        manager.insert_command(command1.clone()).await.unwrap();
+        manager.insert_command(command2.clone()).await.unwrap();
         manager.insert_command(command3.clone()).await.unwrap();
     }
 }
