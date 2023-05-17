@@ -8,56 +8,12 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Span, Spans},
-    widgets::{Block, Borders, Tabs},
+    widgets::{Block, Borders, List, ListItem, Tabs},
     Frame, Terminal,
 };
 use std::{error::Error, io};
-use thiserror::Error;
 
-use crate::service::command_service::{CommandService, CommandServiceError};
-
-struct App {
-    pub executables: Vec<String>,
-    pub index: usize,
-    pub command_service: CommandService,
-}
-
-#[derive(Debug, Error)]
-enum ApplicationError {
-    #[error("Command Service failed: {0}")]
-    CommandService(#[from] CommandServiceError),
-}
-
-impl App {
-    async fn new() -> Result<App, ApplicationError> {
-        let command_service = CommandService::new("commands.db").await?;
-        let executables: Vec<String> = command_service
-            .get_all_commands()
-            .await?
-            .into_iter()
-            .map(|command| command.executable)
-            .collect();
-
-        // get titles from the db
-        Ok(App {
-            executables,
-            index: 0,
-            command_service,
-        })
-    }
-
-    pub fn next(&mut self) {
-        self.index = (self.index + 1) % self.executables.len();
-    }
-
-    pub fn previous(&mut self) {
-        if self.index > 0 {
-            self.index -= 1;
-        } else {
-            self.index = self.executables.len() - 1;
-        }
-    }
-}
+use super::app::App;
 
 pub async fn run_terminal() -> Result<(), Box<dyn Error>> {
     // setup terminal
@@ -89,20 +45,22 @@ pub async fn run_terminal() -> Result<(), Box<dyn Error>> {
 
 fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<()> {
     loop {
-        terminal.draw(|f| ui(f, &app))?;
+        terminal.draw(|f| ui(f, &mut app))?;
 
         if let Event::Key(key) = event::read()? {
             match key.code {
                 KeyCode::Char('q') => return Ok(()),
                 KeyCode::Right => app.next(),
                 KeyCode::Left => app.previous(),
+                KeyCode::Down => app.commands.next(),
+                KeyCode::Up => app.commands.previous(),
                 _ => {}
             }
         }
     }
 }
 
-fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
+fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let size = f.size();
     let chunks = Layout::default()
         .direction(Direction::Vertical)
@@ -114,9 +72,15 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
     f.render_widget(block, size);
 
     let titles = app
-        .executables
+        .commands
+        .items
         .iter()
-        .map(|t| Spans::from(Span::styled(t, Style::default().fg(Color::Cyan))))
+        .map(|command| {
+            Spans::from(Span::styled(
+                command.executable.clone(),
+                Style::default().fg(Color::Cyan),
+            ))
+        })
         .collect();
 
     let tabs = Tabs::new(titles)
@@ -130,31 +94,41 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
         );
     f.render_widget(tabs, chunks[0]);
 
-    match app.index {
-        0 => draw_commands_pane(f, app, chunks[1]),
-        // 1 => Block::default().title("Inner 1").borders(Borders::ALL),
-        // 2 => Block::default().title("Inner 2").borders(Borders::ALL),
-        // 3 => Block::default().title("Inner 3").borders(Borders::ALL),
-        _ => unreachable!(),
-    };
+    draw_commands_pane(f, app, chunks[1])
+
     // f.render_widget(inner, chunks[1]);
 }
 
-fn draw_commands_pane<B: Backend>(f: &mut Frame<B>, app: &App, area: Rect) {
+fn draw_commands_pane<B: Backend>(f: &mut Frame<B>, app: &mut App, area: Rect) {
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints(vec![Constraint::Percentage(25), Constraint::Percentage(75)].as_ref())
         .split(area);
     draw_alias_pane(f, app, chunks[0]);
-    draw_description_pane(f, app, chunks[1]);
+    draw_description_and_command_pane(f, app, chunks[1]);
 }
 
-fn draw_alias_pane<B: Backend>(f: &mut Frame<B>, app: &App, area: Rect) {
-    let aliases = Block::default().title("Inner 1").borders(Borders::ALL);
-    f.render_widget(aliases, area);
+fn draw_alias_pane<B: Backend>(f: &mut Frame<B>, app: &mut App, area: Rect) {
+    let current_command_tab = app.commands.items.get(app.index).unwrap(); // This should not fail
+    let commands = app.get_by_executable(&current_command_tab.executable);
+
+    let aliases: Vec<ListItem> = app
+        .commands
+        .items
+        .iter()
+        .filter(|command| command.executable == current_command_tab.executable)
+        .map(|command| ListItem::new(vec![Spans::from(Span::raw(command.clone().alias))]))
+        .collect();
+
+    let aliases = List::new(aliases)
+        .block(Block::default().borders(Borders::ALL).title("Alias list"))
+        .highlight_style(Style::default().add_modifier(Modifier::BOLD))
+        .highlight_symbol("> ");
+    // f.render_widget(aliases, area);
+    f.render_stateful_widget(aliases, area, &mut app.commands.state);
 }
 
-fn draw_description_pane<B: Backend>(f: &mut Frame<B>, app: &App, area: Rect) {
+fn draw_description_and_command_pane<B: Backend>(f: &mut Frame<B>, app: &App, area: Rect) {
     let descriptions = Block::default().title("Inner 2").borders(Borders::ALL);
     f.render_widget(descriptions, area);
 }

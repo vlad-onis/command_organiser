@@ -40,7 +40,7 @@ impl CommandStorageManager {
         let _query_result = sqlx::query(
             "CREATE TABLE IF NOT EXISTS commands \
             (command VARCHAR(250) NOT NULL UNIQUE, \
-            executable VARCHAR(50) NOT NULL UNIQUE, \
+            executable VARCHAR(50) NOT NULL, \
             alias VARCHAR(20) NOT NULL UNIQUE, \
             description VARCHAR(300) NULL);",
         )

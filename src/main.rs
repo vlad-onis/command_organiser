@@ -29,7 +29,7 @@ pub mod tests {
         let command2 = Command {
             executable: "ssh".to_string(),
             command: "ssh --version".to_string(),
-            alias: "git_version".to_string(),
+            alias: "ssh_version".to_string(),
             description: Some("Just a ssh version".to_string()),
         };
 
@@ -40,8 +40,30 @@ pub mod tests {
             description: Some("Just a ls".to_string()),
         };
 
+        let command4 = Command {
+            executable: "ls".to_string(),
+            command: "ls -a".to_string(),
+            alias: "ls_all".to_string(),
+            description: Some("Just a ls".to_string()),
+        };
+        let command5 = Command {
+            executable: "ls".to_string(),
+            command: "ls ..".to_string(),
+            alias: "ls_previous".to_string(),
+            description: Some("Just a ls".to_string()),
+        };
+        let command6 = Command {
+            executable: "ls".to_string(),
+            command: "ls --version".to_string(),
+            alias: "ls_version".to_string(),
+            description: Some("Just a ls".to_string()),
+        };
+
         manager.insert_command(command1.clone()).await.unwrap();
         manager.insert_command(command2.clone()).await.unwrap();
         manager.insert_command(command3.clone()).await.unwrap();
+        manager.insert_command(command4.clone()).await.unwrap();
+        manager.insert_command(command5.clone()).await.unwrap();
+        manager.insert_command(command6.clone()).await.unwrap();
     }
 }
