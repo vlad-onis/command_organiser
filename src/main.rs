@@ -44,19 +44,19 @@ pub mod tests {
             executable: "ls".to_string(),
             command: "ls -a".to_string(),
             alias: "ls_all".to_string(),
-            description: Some("Just a ls".to_string()),
+            description: Some("Just a ls all".to_string()),
         };
         let command5 = Command {
             executable: "ls".to_string(),
             command: "ls ..".to_string(),
             alias: "ls_previous".to_string(),
-            description: Some("Just a ls".to_string()),
+            description: Some("Just a ls previous".to_string()),
         };
         let command6 = Command {
             executable: "ls".to_string(),
             command: "ls --version".to_string(),
             alias: "ls_version".to_string(),
-            description: Some("Just a ls".to_string()),
+            description: Some("Just a ls version".to_string()),
         };
 
         manager.insert_command(command1.clone()).await.unwrap();

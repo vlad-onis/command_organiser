@@ -8,7 +8,7 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Span, Spans},
-    widgets::{Block, Borders, List, ListItem, Tabs},
+    widgets::{Block, Borders, List, ListItem, Paragraph, Tabs},
     Frame, Terminal,
 };
 use std::{error::Error, io};
@@ -101,15 +101,16 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
 }
 
 fn draw_commands_pane<B: Backend>(f: &mut Frame<B>, app: &mut App, area: Rect) {
+    draw_alias_pane(f, app, area);
+    // draw_description_and_command_pane(f, app, chunks[1]);
+}
+
+fn draw_alias_pane<B: Backend>(f: &mut Frame<B>, app: &mut App, area: Rect) {
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints(vec![Constraint::Percentage(25), Constraint::Percentage(75)].as_ref())
         .split(area);
-    draw_alias_pane(f, app, chunks[0]);
-    draw_description_and_command_pane(f, app, chunks[1]);
-}
 
-fn draw_alias_pane<B: Backend>(f: &mut Frame<B>, app: &mut App, area: Rect) {
     let exes = app.executables();
     let current_command_tab = exes.get(app.tabs.index).unwrap(); // This should not fail
     let commands = app.get_by_executable(current_command_tab);
@@ -123,11 +124,28 @@ fn draw_alias_pane<B: Backend>(f: &mut Frame<B>, app: &mut App, area: Rect) {
         .block(Block::default().borders(Borders::ALL).title("Alias list"))
         .highlight_style(Style::default().add_modifier(Modifier::BOLD))
         .highlight_symbol("> ");
-    // f.render_widget(aliases, area);
-    f.render_stateful_widget(aliases, area, &mut app.commands.state);
+    f.render_stateful_widget(aliases, chunks[0], &mut app.commands.state);
+
+    draw_description_and_command_pane(f, app, chunks[1]);
 }
 
 fn draw_description_and_command_pane<B: Backend>(f: &mut Frame<B>, app: &App, area: Rect) {
-    let descriptions = Block::default().title("Inner 2").borders(Borders::ALL);
-    f.render_widget(descriptions, area);
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(vec![Constraint::Percentage(60), Constraint::Percentage(40)].as_ref())
+        .split(area);
+
+    let description = app
+        .get_selected_command_description()
+        .unwrap_or(String::new());
+
+    let description = Paragraph::new(description).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title("Command Description"),
+    );
+
+    let command = Block::default().title("Inner 3").borders(Borders::ALL);
+    f.render_widget(description, chunks[0]);
+    f.render_widget(command, chunks[1]);
 }

@@ -69,6 +69,13 @@ impl<T> StatefulList<T> {
         };
         self.state.select(Some(i));
     }
+
+    pub fn selected_index(&self) -> usize {
+        match self.state.selected() {
+            Some(i) => i,
+            None => 0,
+        }
+    }
 }
 
 pub struct App {
@@ -110,5 +117,21 @@ impl App {
 
     pub fn get_by_executable(&self, executable: &str) -> Vec<Command> {
         self.commands.items[executable].clone()
+    }
+
+    pub fn get_selected_command_description(&self) -> Option<String> {
+        let executable = self.get_selected_executable();
+        let selected_command_index = self.commands.selected_index();
+
+        // This should not fail
+        self.commands.items[&executable]
+            .get(selected_command_index)
+            .unwrap()
+            .description
+            .clone()
+    }
+
+    pub fn get_selected_executable(&self) -> String {
+        self.tabs.titles.get(self.tabs.index).unwrap().clone()
     }
 }
