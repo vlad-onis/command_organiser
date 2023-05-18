@@ -119,7 +119,7 @@ impl App {
         self.commands.items[executable].clone()
     }
 
-    pub fn get_selected_command_description(&self) -> Option<String> {
+    pub fn get_selected_command(&self) -> Command {
         let executable = self.get_selected_executable();
         let selected_command_index = self.commands.selected_index();
 
@@ -127,7 +127,6 @@ impl App {
         self.commands.items[&executable]
             .get(selected_command_index)
             .unwrap()
-            .description
             .clone()
     }
 

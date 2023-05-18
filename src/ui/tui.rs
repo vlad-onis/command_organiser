@@ -5,10 +5,10 @@ use crossterm::{
 };
 use ratatui::{
     backend::{Backend, CrosstermBackend},
-    layout::{Constraint, Direction, Layout, Rect},
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Span, Spans},
-    widgets::{Block, Borders, List, ListItem, Paragraph, Tabs},
+    widgets::{Block, Borders, List, ListItem, Paragraph, Tabs, Wrap},
     Frame, Terminal,
 };
 use std::{error::Error, io};
@@ -135,17 +135,23 @@ fn draw_description_and_command_pane<B: Backend>(f: &mut Frame<B>, app: &App, ar
         .constraints(vec![Constraint::Percentage(60), Constraint::Percentage(40)].as_ref())
         .split(area);
 
-    let description = app
-        .get_selected_command_description()
-        .unwrap_or(String::new());
+    let selected_command = app.get_selected_command();
 
-    let description = Paragraph::new(description).block(
-        Block::default()
-            .borders(Borders::ALL)
-            .title("Command Description"),
-    );
+    let description = selected_command.description.unwrap_or(String::new());
 
-    let command = Block::default().title("Inner 3").borders(Borders::ALL);
+    let description = Paragraph::new(description)
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title("Command Description"),
+        )
+        .alignment(Alignment::Left)
+        .wrap(Wrap { trim: true });
+
+    let command = selected_command.command;
+    let command =
+        Paragraph::new(command).block(Block::default().borders(Borders::ALL).title("Command"));
+
     f.render_widget(description, chunks[0]);
     f.render_widget(command, chunks[1]);
 }
