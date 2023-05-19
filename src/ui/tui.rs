@@ -72,6 +72,16 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                     let selected_executable_tab = app.tabs.titles.get(app.tabs.index).unwrap(); // This should not fail
                     app.commands.previous(selected_executable_tab);
                 }
+                KeyCode::Enter => {
+                    let clip_res = app.save_command_to_clipboard();
+                    match clip_res {
+                        Ok(()) => return Ok(()),
+                        Err(e) => {
+                            println!("Encountered error while copying to clipboard: {e:?}");
+                            return Ok(());
+                        }
+                    }
+                }
                 _ => {}
             }
         }

@@ -1,3 +1,4 @@
+use clipboard::{ClipboardContext, ClipboardProvider};
 use ratatui::widgets::ListState;
 use std::collections::HashMap;
 use thiserror::Error;
@@ -87,6 +88,9 @@ pub struct App {
 pub enum ApplicationError {
     #[error("Command Service failed: {0}")]
     CommandService(#[from] CommandServiceError),
+
+    #[error("Failed to create clipboard context: {0}")]
+    ClipBoardError(#[from] Box<dyn std::error::Error>),
 }
 
 impl App {
@@ -132,5 +136,14 @@ impl App {
 
     pub fn get_selected_executable(&self) -> String {
         self.tabs.titles.get(self.tabs.index).unwrap().clone()
+    }
+
+    pub fn save_command_to_clipboard(&self) -> Result<(), ApplicationError> {
+        let command = self.get_selected_command().command.to_owned();
+        let mut clipboard_context: ClipboardContext = ClipboardProvider::new()?;
+
+        clipboard_context.set_contents(command);
+
+        Ok(())
     }
 }
