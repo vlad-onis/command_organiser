@@ -8,7 +8,7 @@ use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Span, Spans},
-    widgets::{Block, Borders, List, ListItem, Paragraph, Tabs, Wrap},
+    widgets::{Block, Borders, List, ListItem, ListState, Paragraph, Tabs, Wrap},
     Frame, Terminal,
 };
 use std::{error::Error, io};
@@ -50,8 +50,20 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
         if let Event::Key(key) = event::read()? {
             match key.code {
                 KeyCode::Char('q') => return Ok(()),
-                KeyCode::Right => app.tabs.next(),
-                KeyCode::Left => app.tabs.previous(),
+                KeyCode::Right => {
+                    app.tabs.next();
+
+                    // If commands list state remains selected, changing tabs will crash
+                    // the app because we still have some unwraps
+                    app.commands.state = ListState::default()
+                }
+                KeyCode::Left => {
+                    app.tabs.previous();
+
+                    // If commands list state remains selected, changing tabs will crash
+                    // the app because we still have some unwraps
+                    app.commands.state = ListState::default()
+                }
                 KeyCode::Down => {
                     let selected_executable_tab = app.tabs.titles.get(app.tabs.index).unwrap(); // This should not fail
                     app.commands.next(selected_executable_tab)
