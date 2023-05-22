@@ -1,8 +1,9 @@
+use serde::Deserialize;
 use sqlx::FromRow;
 
 // todo: introduce alias for commands
 
-#[derive(Clone, FromRow, Debug)]
+#[derive(Clone, FromRow, Debug, Deserialize)]
 pub struct Command {
     pub alias: String,
     pub executable: String,

@@ -1,3 +1,4 @@
+mod cli;
 mod model;
 mod service;
 mod storage;
@@ -5,6 +6,8 @@ mod ui;
 
 #[tokio::main]
 async fn main() {
+    let _ = cli::populate_db().await.expect("Failed to populate the db");
+
     let _ = ui::tui::run_terminal().await;
 }
 
