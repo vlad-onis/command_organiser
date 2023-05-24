@@ -55,9 +55,16 @@ pub async fn populate_db() -> Result<(), Box<dyn std::error::Error>> {
         let command_service = CommandService::new(&args.db_file).await?;
 
         for command in commands {
-            let _ = command_service
+            let inserted = command_service
                 .insert_command(&command.command, &command.alias, command.description)
-                .await?;
+                .await;
+
+            if inserted.is_err() {
+                println!(
+                    "Could not insert command {} because: {:?}",
+                    command.alias, inserted
+                );
+            }
         }
     }
 
