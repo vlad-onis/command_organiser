@@ -11,6 +11,8 @@ use ratatui::{
     widgets::{Block, Borders, List, ListItem, ListState, Paragraph, Tabs, Wrap},
     Frame, Terminal,
 };
+
+use anyhow::Result;
 use std::{error::Error, io};
 use tracing::error;
 

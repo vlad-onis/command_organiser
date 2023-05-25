@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::path::Path;
 
+use anyhow::{anyhow, Context, Result};
 use clap::Parser;
 use tracing::{info, trace, warn, Level};
 
@@ -27,42 +28,46 @@ struct Args {
     count: u8,
 }
 
-pub async fn read_commands_from_file(
-    file: String,
-) -> Result<Vec<Command>, Box<dyn std::error::Error>> {
+pub async fn read_commands_from_file(file: String) -> Result<Vec<Command>> {
     let input_file_path = Path::new(&file);
     if !input_file_path.is_file() {
-        return Err("path is not a file".to_string().into());
+        return Err(anyhow!("path is not a file"));
     }
 
     trace!("Parsing the file: {file}");
 
-    let toml_string = std::fs::read_to_string(input_file_path)?;
+    let toml_string = std::fs::read_to_string(input_file_path)
+        .with_context(|| format!("Failed to read the contents from {input_file_path:?}"))?;
 
-    let commands: HashMap<String, Vec<Command>> = toml::from_str(&toml_string)?;
+    let commands: HashMap<String, Vec<Command>> = toml::from_str(&toml_string)
+        .with_context(|| format!("Failed to deserialise the commands from file"))?;
 
     let commands = commands["commands"].clone();
 
     Ok(commands)
 }
 
-pub async fn populate_db() -> Result<(), Box<dyn std::error::Error>> {
+pub async fn populate_db() -> Result<()> {
     let args = Args::parse();
 
     if let Some(file) = args.file {
         info!("Populating the db from input file: {}", file);
         let commands = read_commands_from_file(file).await?;
-        let command_service = CommandService::new(&args.db_file).await?;
+
+        info!("Creating the command service...");
+        let command_service = CommandService::new(&args.db_file)
+            .await
+            .with_context(|| format!("Failed to create the Command Service"))?;
 
         for command in commands {
             let inserted = command_service
                 .insert_command(&command.command, &command.alias, command.description)
                 .await;
 
-            if inserted.is_err() {
+            if let Err(e) = inserted {
                 warn!(
                     "Could not insert command {} because: {:?}",
-                    command.alias, inserted
+                    command.alias, e
                 );
             }
         }

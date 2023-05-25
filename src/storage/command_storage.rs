@@ -29,9 +29,10 @@ impl CommandStorageManager {
     pub async fn db_setup(db_url: &str) -> Result<SqlitePool, CommandStorageError> {
         // Create the db file
         if !Sqlite::database_exists(db_url).await.unwrap_or(false) {
+            info!("Creating database: {db_url}");
             Sqlite::create_database(db_url).await?;
         } else {
-            info!("Database already exists");
+            info!("Database: {db_url} already exists");
         }
 
         // create the db connection pool
