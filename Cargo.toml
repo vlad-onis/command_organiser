@@ -11,7 +11,7 @@ ratatui = "0.20.1"
 thiserror = "1.0.40"
 tracing = "0.1.37"
 lazy_static = "1.4.0"
-tracing-subscriber = "0.3.16"
+tracing-subscriber = { version = "0.3.17", features = ["json"] }
 unicode-width = "0.1.10"
 sqlx = { version = "0.6.3", features = ["runtime-tokio-native-tls", "sqlite"] }
 tokio = { version = "1.28.0", features = ["full"] }

@@ -4,9 +4,27 @@ mod service;
 mod storage;
 mod ui;
 
+use tracing::{error, info, Level};
+use tracing_subscriber::FmtSubscriber;
+
+fn set_tracing() {
+    let subscriber = FmtSubscriber::builder()
+        .with_max_level(Level::DEBUG)
+        .finish();
+    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+}
+
 #[tokio::main]
 async fn main() {
-    let _ = cli::populate_db().await.expect("Failed to populate the db");
+    set_tracing();
+
+    info!("Starting the command organiser...");
+
+    let populated = cli::populate_db().await;
+
+    if let Err(e) = populated {
+        error!("Failed to populate the db from file: {e}");
+    }
 
     let _ = ui::tui::run_terminal().await;
 }
