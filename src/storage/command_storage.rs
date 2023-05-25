@@ -1,5 +1,6 @@
 use sqlx::{migrate::MigrateDatabase, Error as SqlxError, Sqlite, SqlitePool};
 use thiserror::Error;
+use tracing::info;
 
 use crate::model::command::Command;
 
@@ -30,7 +31,7 @@ impl CommandStorageManager {
         if !Sqlite::database_exists(db_url).await.unwrap_or(false) {
             Sqlite::create_database(db_url).await?;
         } else {
-            println!("Database already exists");
+            info!("Database already exists");
         }
 
         // create the db connection pool

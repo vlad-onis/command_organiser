@@ -12,6 +12,7 @@ use ratatui::{
     Frame, Terminal,
 };
 use std::{error::Error, io};
+use tracing::error;
 
 use super::app::App;
 
@@ -37,7 +38,7 @@ pub async fn run_terminal() -> Result<(), Box<dyn Error>> {
     terminal.show_cursor()?;
 
     if let Err(err) = res {
-        println!("{:?}", err)
+        error!("{:?}", err)
     }
 
     Ok(())
@@ -77,7 +78,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                     match clip_res {
                         Ok(()) => return Ok(()),
                         Err(e) => {
-                            println!("Encountered error while copying to clipboard: {e:?}");
+                            error!("Encountered error while copying to clipboard: {e:?}");
                             return Ok(());
                         }
                     }

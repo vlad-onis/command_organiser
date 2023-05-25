@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::path::Path;
 
 use clap::Parser;
-use serde::Deserialize;
+use tracing::{info, trace, warn, Level};
 
 use crate::model::command::Command;
 use crate::service::command_service::CommandService;
@@ -35,10 +35,11 @@ pub async fn read_commands_from_file(
         return Err("path is not a file".to_string().into());
     }
 
-    let toml_string = std::fs::read_to_string("commands.toml").expect("Failed to read file");
+    trace!("Parsing the file: {file}");
 
-    let commands: HashMap<String, Vec<Command>> =
-        toml::from_str(&toml_string).expect("Failed to deserialize TOML");
+    let toml_string = std::fs::read_to_string(input_file_path)?;
+
+    let commands: HashMap<String, Vec<Command>> = toml::from_str(&toml_string)?;
 
     let commands = commands["commands"].clone();
 
@@ -48,9 +49,8 @@ pub async fn read_commands_from_file(
 pub async fn populate_db() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
-    println!("{args:?}");
-
     if let Some(file) = args.file {
+        info!("Populating the db from input file: {}", file);
         let commands = read_commands_from_file(file).await?;
         let command_service = CommandService::new(&args.db_file).await?;
 
@@ -60,7 +60,7 @@ pub async fn populate_db() -> Result<(), Box<dyn std::error::Error>> {
                 .await;
 
             if inserted.is_err() {
-                println!(
+                warn!(
                     "Could not insert command {} because: {:?}",
                     command.alias, inserted
                 );
