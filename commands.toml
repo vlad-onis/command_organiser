@@ -1,0 +1,17 @@
+[[commands]]
+command="git --version"
+executable="git"
+alias="git_version"
+description="Verify the version of your git binary"
+
+[[commands]]
+command="git submodule update --recursive --init"
+executable="git"
+alias="git_submodule_update"
+description="Updates recursively all submodules in a repository"
+
+[[commands]]
+command="ls ."
+executable="ls"
+alias="ls_current"
+description="Displays the contents of the current directory"
