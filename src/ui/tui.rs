@@ -7,7 +7,7 @@ use ratatui::{
     backend::{Backend, CrosstermBackend},
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
-    text::{Span, Spans},
+    text::{Span, Spans, Text},
     widgets::{Block, Borders, List, ListItem, ListState, Paragraph, Tabs, Wrap},
     Frame, Terminal,
 };
@@ -95,12 +95,33 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let size = f.size();
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .margin(5)
-        .constraints([Constraint::Length(3), Constraint::Min(0)].as_ref())
+        .constraints([Constraint::Percentage(20), Constraint::Percentage(80)].as_ref())
         .split(size);
 
     let block = Block::default().style(Style::default().bg(Color::Black).fg(Color::LightYellow));
     f.render_widget(block, size);
+
+    let (msg, style) = (
+        vec![
+            Spans::from("Press q to exit"),
+            Spans::from("Left and Right arrows to navigate through the executable tab"),
+            Spans::from("Up and Down arrows to navigate through the alias list"),
+            Spans::from("Enter to select ca command, copy it to your clipboard and close the U.i."),
+        ],
+        Style::default().add_modifier(Modifier::RAPID_BLINK),
+    );
+
+    let help_message = Paragraph::new(msg);
+    f.render_widget(help_message, chunks[0]);
+
+    draw_executable_tab(f, app, chunks[1]);
+}
+
+fn draw_executable_tab<B: Backend>(f: &mut Frame<B>, app: &mut App, area: Rect) {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Percentage(11), Constraint::Percentage(89)].as_ref())
+        .split(area);
 
     let titles = app
         .tabs
@@ -121,8 +142,6 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     f.render_widget(tabs, chunks[0]);
 
     draw_commands_pane(f, app, chunks[1])
-
-    // f.render_widget(inner, chunks[1]);
 }
 
 fn draw_commands_pane<B: Backend>(f: &mut Frame<B>, app: &mut App, area: Rect) {
