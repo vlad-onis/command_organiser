@@ -1,4 +1,5 @@
 use thiserror::Error;
+use tracing::info;
 
 use crate::model::command::Command;
 use crate::storage::command_storage::{CommandStorageError, CommandStorageManager};
@@ -30,6 +31,7 @@ pub struct CommandService {
 
 impl CommandService {
     pub async fn new(db_url: &str) -> Result<Self, CommandServiceError> {
+        info!("Creating the Storage Manager");
         let storage_manager = CommandStorageManager::new(db_url)
             .await
             .map_err(|e| CommandServiceError::StorageManagerConstruction(e))?;
