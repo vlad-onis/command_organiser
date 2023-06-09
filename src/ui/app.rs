@@ -141,8 +141,7 @@ impl App {
     pub fn save_command_to_clipboard(&self) -> Result<(), ApplicationError> {
         let command = self.get_selected_command().command.to_owned();
         let mut clipboard_context: ClipboardContext = ClipboardProvider::new()?;
-
-        clipboard_context.set_contents(command);
+        clipboard_context.set_contents(command.clone());
 
         Ok(())
     }
